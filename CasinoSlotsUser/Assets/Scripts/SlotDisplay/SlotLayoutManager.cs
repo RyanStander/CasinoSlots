@@ -2,6 +2,9 @@ using UnityEngine;
 
 namespace SlotDisplay
 {
+    /// <summary>
+    /// Creates a grid of slots based on the values set in the inspector.
+    /// </summary>
     public class SlotLayoutManager : MonoBehaviour
     {
         [SerializeField] private GameObject slotPrefab;
@@ -12,9 +15,13 @@ namespace SlotDisplay
         public int ReelCount => reelCount;
         public int RowCount => rowCount;
 
+        public GameObject[,] SlotBoard { get; private set; }
+
         //function to update when values are changed
         private void OnValidate()
         {
+            if (Application.isPlaying)
+                return;
             if (slotPrefab == null)
                 return;
 
@@ -24,6 +31,8 @@ namespace SlotDisplay
                 UnityEditor.EditorApplication.delayCall += () => { DestroyImmediate(child.gameObject); };
             }
 
+            SlotBoard = new GameObject[reelCount, rowCount];
+
             //create new children and name them to their index
             for (var i = 0; i < reelCount; i++)
             {
@@ -32,6 +41,7 @@ namespace SlotDisplay
                     var slot = Instantiate(slotPrefab, transform);
                     slot.transform.localPosition = new Vector3(i * reelSpacing, -j * rowSpacing, 0);
                     slot.name = $"{i},{j}";
+                    SlotBoard[i, j] = slot;
                 }
             }
         }
