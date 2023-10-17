@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace SlotDisplay
@@ -53,5 +54,29 @@ namespace SlotDisplay
             }
         }
         #endif
+
+        private void Awake()
+        {
+            //destroy all children
+            foreach (Transform child in transform)
+            {
+                if (child != null) Destroy(child.gameObject);
+            }
+
+
+            SlotBoard = new GameObject[reelCount, rowCount + 1];
+
+            //create new children and name them to their index
+            for (var i = 0; i < reelCount; i++)
+            {
+                for (var j = 0; j <= rowCount; j++)
+                {
+                    var slot = Instantiate(slotPrefab, transform);
+                    slot.transform.localPosition = new Vector3(i * reelSpacing, -j*rowSpacing, 0);
+                    slot.name = $"{i},{j}";
+                    SlotBoard[i, j] = slot;
+                }
+            }
+        }
     }
 }
