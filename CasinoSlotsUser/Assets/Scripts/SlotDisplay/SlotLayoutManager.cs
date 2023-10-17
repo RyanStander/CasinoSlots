@@ -18,6 +18,7 @@ namespace SlotDisplay
 
         public GameObject[,] SlotBoard { get; private set; }
 
+#if UNITY_EDITOR
         //function to update when values are changed
         private void OnValidate()
         {
@@ -51,5 +52,6 @@ namespace SlotDisplay
                 }
             }
         }
+        #endif
     }
 }
