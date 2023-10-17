@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using SlotDisplay;
+using UI;
 using UnityEngine;
 
 namespace SlotFunctionality
@@ -9,11 +10,13 @@ namespace SlotFunctionality
         private readonly Material lineMaterial;
         private readonly Vector3 symbolOffset;
         private readonly List<GameObject> matchLines = new();
+        private readonly ScoreManager scoreManager;
 
-        public MatchMaker(Material lineMaterial, Vector3 symbolOffset)
+        public MatchMaker(Material lineMaterial, Vector3 symbolOffset, ScoreManager scoreManager)
         {
             this.lineMaterial = lineMaterial;
             this.symbolOffset = symbolOffset;
+            this.scoreManager = scoreManager;
         }
 
         public void ClearLines()
@@ -51,6 +54,37 @@ namespace SlotFunctionality
         {
             for (var i = 0; i < slotLayoutManager.ReelCount; i++)
             {
+                var matchLength = 1;
+                var matchBegin = symbols[0, i];
+                GameObject matchEnd;
+                for (var j = 0; j < slotLayoutManager.RowCount - 1; j++)
+                {
+                    if (symbols[j, i].name == symbols[j + 1, i].name)
+                    {
+                        matchLength++;
+                    }
+                    else
+                    {
+                        if (matchLength >= 3)
+                        {
+                            matchEnd = symbols[j, i];
+                            scoreManager.WinCredits((matchLength-2) * 10);
+                            DrawLine(matchBegin.transform.position + symbolOffset, matchEnd.transform.position + symbolOffset);
+                        }
+                        matchBegin = symbols[j + 1, i];
+                        matchLength = 1;
+                    }
+                }
+                if (matchLength >= 3)
+                {
+                    matchEnd = symbols[slotLayoutManager.RowCount - 1, i];
+                    scoreManager.WinCredits((matchLength-2) * 10);
+                    DrawLine(matchBegin.transform.position + symbolOffset, matchEnd.transform.position + symbolOffset);
+                }
+            }
+
+            for (var i = 0; i < slotLayoutManager.ReelCount; i++)
+            {
                 for (var j = 0; j < slotLayoutManager.RowCount; j++)
                 {
                     if (j != 0 && symbols[j, i].name != symbols[j - 1, i].name)
@@ -82,6 +116,7 @@ namespace SlotFunctionality
                         if (matchLength >= 3)
                         {
                             matchEnd = symbols[i, j];
+                            scoreManager.WinCredits((matchLength-2) * 10);
                             DrawLine(matchBegin.transform.position + symbolOffset,
                                 matchEnd.transform.position + symbolOffset);
                         }
@@ -94,6 +129,7 @@ namespace SlotFunctionality
                 if (matchLength >= 3)
                 {
                     matchEnd = symbols[i, slotLayoutManager.ReelCount - 1];
+                    scoreManager.WinCredits((matchLength-2) * 10);
                     DrawLine(matchBegin.transform.position + symbolOffset, matchEnd.transform.position + symbolOffset);
                 }
             }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SlotDisplay;
+using UI;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -28,6 +29,8 @@ namespace SlotFunctionality
         [SerializeField] private AudioClip clickNoise;
 
         [Header("Line Settings"),SerializeField] Material lineMaterial;
+        [SerializeField] private UIScoreManager uiScoreManager;
+
         private readonly Vector3 symbolOffset = new(0, 0, -1);
         private GameObject[,] symbols;
 
@@ -38,6 +41,7 @@ namespace SlotFunctionality
         private bool isSpinning;
 
         private MatchMaker matchMaker;
+        private ScoreManager scoreManager;
 
         private void OnValidate()
         {
@@ -46,11 +50,15 @@ namespace SlotFunctionality
 
             if (slots == null)
                 slots = GameObject.Find("Slots");
+
+            if (uiScoreManager== null)
+                uiScoreManager = FindObjectsByType<UIScoreManager>(FindObjectsSortMode.None)[0];
         }
 
         private void Awake()
         {
-            matchMaker = new MatchMaker(lineMaterial, symbolOffset);
+            scoreManager = new ScoreManager(uiScoreManager);
+            matchMaker = new MatchMaker(lineMaterial, symbolOffset, scoreManager);
         }
 
         private void Start()
@@ -114,6 +122,9 @@ namespace SlotFunctionality
 
         public void StartSpin()
         {
+            if(!scoreManager.TryPayForSpin())
+                return;
+
             matchMaker.ClearLines();
 
             reelSpinTimestamp = Time.time + firstReelStopTime;
