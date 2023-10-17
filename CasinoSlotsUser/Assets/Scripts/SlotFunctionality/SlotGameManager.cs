@@ -27,15 +27,17 @@ namespace SlotFunctionality
         [SerializeField] private AudioSource spinAudioSource;
         [SerializeField] private AudioClip clickNoise;
 
+        [Header("Line Settings"),SerializeField] Material lineMaterial;
         private readonly Vector3 symbolOffset = new(0, 0, -1);
         private GameObject[,] symbols;
-        private List<GameObject> matchLines = new();
 
         private float topRowYPos;
         private float bottomRowYPos;
         private float reelSpinTimestamp;
         private int reelStopCount;
         private bool isSpinning;
+
+        private MatchMaker matchMaker;
 
         private void OnValidate()
         {
@@ -44,6 +46,11 @@ namespace SlotFunctionality
 
             if (slots == null)
                 slots = GameObject.Find("Slots");
+        }
+
+        private void Awake()
+        {
+            matchMaker = new MatchMaker(lineMaterial, symbolOffset);
         }
 
         private void Start()
@@ -58,11 +65,16 @@ namespace SlotFunctionality
 
         private void Update()
         {
+            WheelSpinning();
+        }
+
+        private void WheelSpinning()
+        {
             if (!isSpinning)
                 return;
 
             var toleranceValue = Math.Abs(slotLayoutManager.SlotBoard[reelStopCount+1, 0].transform.localPosition.y -
-                               (topRowYPos - slotLayoutManager.RowSpacing));
+                                          (topRowYPos - slotLayoutManager.RowSpacing));
 
             if (Time.time >= reelSpinTimestamp&& toleranceValue < 0.01f)
             {
@@ -73,7 +85,7 @@ namespace SlotFunctionality
                 {
                     isSpinning = false;
                     spinAudioSource.Stop();
-                    CheckForMatches();
+                    matchMaker.CheckForMatches(symbols, slotLayoutManager);
                     return;
                 }
 
@@ -84,7 +96,7 @@ namespace SlotFunctionality
             for (var i = 0; i < slotLayoutManager.ReelCount; i++)
             {
                 var specifiedToleranceValue = Math.Abs(slotLayoutManager.SlotBoard[i, 0].transform.localPosition.y -
-                               (topRowYPos - slotLayoutManager.RowSpacing));
+                                                       (topRowYPos - slotLayoutManager.RowSpacing));
                 if (reelStopCount >= i && specifiedToleranceValue < 0.01f)
                     continue;
 
@@ -100,15 +112,9 @@ namespace SlotFunctionality
             }
         }
 
-        public void SpinTheWheel()
+        public void StartSpin()
         {
-            //Clear lines from previous spin
-            foreach (var line in matchLines)
-            {
-                Destroy(line);
-            }
-
-            matchLines.Clear();
+            matchMaker.ClearLines();
 
             reelSpinTimestamp = Time.time + firstReelStopTime;
             reelStopCount = -1;
@@ -141,76 +147,6 @@ namespace SlotFunctionality
                 thisPiece2.name = pieceType2.name;
                 thisPiece2.transform.parent = slotLayoutManager.SlotBoard[i, slotLayoutManager.RowCount].transform;
             }
-        }
-
-        private void DrawLine(Vector3 start, Vector3 end)
-        {
-            var myLine = new GameObject();
-            myLine.transform.position = start;
-            myLine.AddComponent<LineRenderer>();
-            var lineRenderer = myLine.GetComponent<LineRenderer>();
-            lineRenderer.startWidth = 0.1f;
-            lineRenderer.endWidth = 0.1f;
-            lineRenderer.SetPosition(0, start);
-            lineRenderer.SetPosition(1, end);
-            matchLines.Add(myLine);
-        }
-
-        private void CheckForMatches()
-        {
-            #region Vertical Matches
-
-            for (var i = 0; i < slotLayoutManager.ReelCount; i++)
-            {
-                for (var j = 0; j < slotLayoutManager.RowCount; j++)
-                {
-                    if (j != 0 && symbols[j, i].name != symbols[j - 1, i].name)
-                        break;
-                    if (j == slotLayoutManager.RowCount - 1)
-                    {
-                        DrawLine(symbols[0, i].transform.position + symbolOffset,
-                            symbols[slotLayoutManager.RowCount - 1, i].transform.position + symbolOffset);
-                    }
-                }
-            }
-
-            #endregion
-
-            #region Horizontal Matches
-
-            for (var i = 0; i < slotLayoutManager.RowCount; i++)
-            {
-                var matchLength = 1;
-                var matchBegin = symbols[i, 0];
-                GameObject matchEnd;
-                for (var j = 0; j < slotLayoutManager.ReelCount - 1; j++)
-                {
-                    if (symbols[i, j].name == symbols[i, j + 1].name)
-                    {
-                        matchLength++;
-                    }
-                    else
-                    {
-                        if (matchLength >= 3)
-                        {
-                            matchEnd = symbols[i, j];
-                            DrawLine(matchBegin.transform.position + symbolOffset,
-                                matchEnd.transform.position + symbolOffset);
-                        }
-
-                        matchBegin = symbols[i, j + 1];
-                        matchLength = 1;
-                    }
-                }
-
-                if (matchLength >= 3)
-                {
-                    matchEnd = symbols[i, slotLayoutManager.ReelCount - 1];
-                    DrawLine(matchBegin.transform.position + symbolOffset, matchEnd.transform.position + symbolOffset);
-                }
-            }
-
-            #endregion
         }
     }
 }
