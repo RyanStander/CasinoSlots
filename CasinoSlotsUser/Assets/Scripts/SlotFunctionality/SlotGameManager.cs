@@ -24,6 +24,9 @@ namespace SlotFunctionality
         [SerializeField, Tooltip("The time between each reel stopping in seconds")]
         private float reelStopDelay = 1f;
 
+        [SerializeField] private AudioSource spinAudioSource;
+        [SerializeField] private AudioClip clickNoise;
+
         private readonly Vector3 symbolOffset = new(0, 0, -1);
         private GameObject[,] symbols;
         private List<GameObject> matchLines = new();
@@ -49,6 +52,8 @@ namespace SlotFunctionality
 
             topRowYPos = slotLayoutManager.SlotBoard[0,0].transform.localPosition.y+ slotLayoutManager.RowSpacing;
             bottomRowYPos = slotLayoutManager.SlotBoard[slotLayoutManager.ReelCount-1,slotLayoutManager.RowCount].transform.localPosition.y ;
+
+            spinAudioSource.loop = true;
         }
 
         private void Update()
@@ -62,10 +67,12 @@ namespace SlotFunctionality
             if (Time.time >= reelSpinTimestamp&& toleranceValue < 0.01f)
             {
                 reelStopCount++;
+                spinAudioSource.PlayOneShot(clickNoise);
 
                 if (reelStopCount == slotLayoutManager.ReelCount-1)
                 {
                     isSpinning = false;
+                    spinAudioSource.Stop();
                     CheckForMatches();
                     return;
                 }
@@ -106,6 +113,7 @@ namespace SlotFunctionality
             reelSpinTimestamp = Time.time + firstReelStopTime;
             reelStopCount = -1;
             isSpinning = true;
+            spinAudioSource.Play();
 
             for (var i = 0; i < slotLayoutManager.ReelCount; i++)
             {
