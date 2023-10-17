@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Events;
 using SlotDisplay;
 using UI;
 using UnityEngine;
@@ -11,6 +12,8 @@ namespace SlotFunctionality
         private readonly Vector3 symbolOffset;
         private readonly List<GameObject> matchLines = new();
         private readonly ScoreManager scoreManager;
+        private List<BonusMode> bonusModes = new();
+        private int totalScore;
 
         public MatchMaker(Material lineMaterial, Vector3 symbolOffset, ScoreManager scoreManager)
         {
@@ -28,6 +31,7 @@ namespace SlotFunctionality
             }
 
             matchLines.Clear();
+            bonusModes.Clear();
         }
 
         private void DrawLine(Vector3 start, Vector3 end)
@@ -45,9 +49,13 @@ namespace SlotFunctionality
 
         public void CheckForMatches(GameObject[,] symbols, SlotLayoutManager slotLayoutManager)
         {
+            totalScore = 0;
+
             CheckForVerticalMatch(symbols, slotLayoutManager);
 
             CheckForHorizontalMatch(symbols, slotLayoutManager);
+
+            EventManager.currentManager.AddEvent(new SendScore(totalScore));
         }
 
         private void CheckForVerticalMatch(GameObject[,] symbols, SlotLayoutManager slotLayoutManager)
@@ -68,17 +76,22 @@ namespace SlotFunctionality
                         if (matchLength >= 3)
                         {
                             matchEnd = symbols[j, i];
-                            scoreManager.WinCredits((matchLength-2) * 10);
-                            DrawLine(matchBegin.transform.position + symbolOffset, matchEnd.transform.position + symbolOffset);
+                            CheckMatch(matchEnd.name);
+                            totalScore += (matchLength - 2) * 10;
+                            DrawLine(matchBegin.transform.position + symbolOffset,
+                                matchEnd.transform.position + symbolOffset);
                         }
+
                         matchBegin = symbols[j + 1, i];
                         matchLength = 1;
                     }
                 }
+
                 if (matchLength >= 3)
                 {
                     matchEnd = symbols[slotLayoutManager.RowCount - 1, i];
-                    scoreManager.WinCredits((matchLength-2) * 10);
+                    CheckMatch(matchEnd.name);
+                    totalScore += (matchLength - 2) * 10;
                     DrawLine(matchBegin.transform.position + symbolOffset, matchEnd.transform.position + symbolOffset);
                 }
             }
@@ -116,7 +129,8 @@ namespace SlotFunctionality
                         if (matchLength >= 3)
                         {
                             matchEnd = symbols[i, j];
-                            scoreManager.WinCredits((matchLength-2) * 10);
+                            CheckMatch(matchEnd.name);
+                            totalScore += (matchLength - 2) * 10;
                             DrawLine(matchBegin.transform.position + symbolOffset,
                                 matchEnd.transform.position + symbolOffset);
                         }
@@ -129,10 +143,23 @@ namespace SlotFunctionality
                 if (matchLength >= 3)
                 {
                     matchEnd = symbols[i, slotLayoutManager.ReelCount - 1];
-                    scoreManager.WinCredits((matchLength-2) * 10);
+                    CheckMatch(matchEnd.name);
+                    totalScore += (matchLength - 2) * 10;
                     DrawLine(matchBegin.transform.position + symbolOffset, matchEnd.transform.position + symbolOffset);
                 }
             }
+        }
+
+        public List<BonusMode> GetBonusModes()
+        {
+            return bonusModes;
+        }
+
+        private void CheckMatch(string symbolName)
+        {
+            var bonusMode = DetermineBonusMode.GetBonusMode(symbolName);
+            if (bonusMode != BonusMode.None)
+                bonusModes.Add(bonusMode);
         }
     }
 }

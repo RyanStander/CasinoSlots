@@ -1,4 +1,5 @@
-﻿using UI;
+﻿using Events;
+using UI;
 
 namespace SlotFunctionality
 {
@@ -15,12 +16,17 @@ namespace SlotFunctionality
             this.uiScoreManager = uiScoreManager;
 
             this.uiScoreManager.SetAllText(winScore,paidScore,creditsScore,betScore);
+
+            EventManager.currentManager.Subscribe(EventIdentifiers.SendScore, OnWinCredits);
         }
 
-        public void WinCredits (int amount)
+        private void OnWinCredits(EventData eventData)
         {
-            creditsScore += amount;
-            uiScoreManager.VictoryPayout(amount);
+            if (!eventData.IsEventOfType(out SendScore winCredits))
+                return;
+
+            creditsScore += winCredits.Score;
+            uiScoreManager.VictoryPayout(winCredits.Score);
         }
 
         public void ChangeBet (int amount)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Events;
 using SlotDisplay;
 using UI;
 using UnityEngine;
@@ -30,6 +31,7 @@ namespace SlotFunctionality
 
         [Header("Line Settings"),SerializeField] Material lineMaterial;
         [SerializeField] private UIScoreManager uiScoreManager;
+        [SerializeField] private BossManager bossManager;
 
         private readonly Vector3 symbolOffset = new(0, 0, -1);
         private GameObject[,] symbols;
@@ -53,6 +55,9 @@ namespace SlotFunctionality
 
             if (uiScoreManager== null)
                 uiScoreManager = FindObjectsByType<UIScoreManager>(FindObjectsSortMode.None)[0];
+
+            if (bossManager == null)
+                bossManager = FindObjectsByType<BossManager>(FindObjectsSortMode.None)[0];
         }
 
         private void Awake()
@@ -94,6 +99,11 @@ namespace SlotFunctionality
                     isSpinning = false;
                     spinAudioSource.Stop();
                     matchMaker.CheckForMatches(symbols, slotLayoutManager);
+                    var bonusModes = matchMaker.GetBonusModes();
+
+                    if (bonusModes.Contains(BonusMode.BossBattle))
+                        EventManager.currentManager.AddEvent(new BossSummon());
+
                     return;
                 }
 
