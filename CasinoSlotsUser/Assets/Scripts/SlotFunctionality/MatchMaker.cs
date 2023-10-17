@@ -11,15 +11,13 @@ namespace SlotFunctionality
         private readonly Material lineMaterial;
         private readonly Vector3 symbolOffset;
         private readonly List<GameObject> matchLines = new();
-        private readonly ScoreManager scoreManager;
         private List<BonusMode> bonusModes = new();
         private int totalScore;
 
-        public MatchMaker(Material lineMaterial, Vector3 symbolOffset, ScoreManager scoreManager)
+        public MatchMaker(Material lineMaterial, Vector3 symbolOffset)
         {
             this.lineMaterial = lineMaterial;
             this.symbolOffset = symbolOffset;
-            this.scoreManager = scoreManager;
         }
 
         public void ClearLines()

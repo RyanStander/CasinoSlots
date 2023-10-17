@@ -63,7 +63,7 @@ namespace SlotFunctionality
         private void Awake()
         {
             scoreManager = new ScoreManager(uiScoreManager);
-            matchMaker = new MatchMaker(lineMaterial, symbolOffset, scoreManager);
+            matchMaker = new MatchMaker(lineMaterial, symbolOffset);
         }
 
         private void Start()

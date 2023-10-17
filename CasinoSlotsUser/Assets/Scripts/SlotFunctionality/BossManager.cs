@@ -62,7 +62,7 @@ namespace SlotFunctionality
             currentHealth -= bossDamage.Score;
             healthBar.SetCurrentValue(currentHealth);
 
-            if (currentHealth > 0)
+            if (currentHealth > 0&& isDead)
                 return;
 
             //give player a big score reward for killing the boss

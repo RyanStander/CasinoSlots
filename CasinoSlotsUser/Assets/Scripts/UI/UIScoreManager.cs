@@ -28,20 +28,24 @@ namespace UI
 
         private void Update()
         {
-            if(!isPayingOut)
+            if (!isPayingOut)
                 return;
 
             if (timeStamp < Time.time)
             {
                 payoutCounter--;
+
+                if (payoutCounter < 0)
+                {
+                    isPayingOut = false;
+                    return;
+                }
+
+                timeStamp = Time.time + payoutSpeed;
+
                 paidText.text = (int.Parse(paidText.text) + 1).ToString();
                 creditText.text = (int.Parse(creditText.text) + 1).ToString();
                 audioSource.PlayOneShot(coinCollectSfx);
-
-                if(payoutCounter == 0)
-                    isPayingOut = false;
-                else
-                    timeStamp = Time.time + payoutSpeed;
             }
         }
 
@@ -66,10 +70,11 @@ namespace UI
             betText.text = betAmount.ToString();
         }
 
-        public void VictoryPayout(int winAmount)
+        public void VictoryPayout(int winAmount, int creditAmount)
         {
             winText.text = winAmount.ToString();
             payoutCounter = winAmount;
+            creditText.text = (creditAmount-winAmount).ToString();
             paidText.text = "0";
             timeStamp = Time.time + payoutSpeed;
             isPayingOut = true;

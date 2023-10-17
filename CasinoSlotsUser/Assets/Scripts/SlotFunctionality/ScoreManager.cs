@@ -26,7 +26,7 @@ namespace SlotFunctionality
                 return;
 
             creditsScore += winCredits.Score;
-            uiScoreManager.VictoryPayout(winCredits.Score);
+            uiScoreManager.VictoryPayout(winCredits.Score,creditsScore);
         }
 
         public void ChangeBet (int amount)
