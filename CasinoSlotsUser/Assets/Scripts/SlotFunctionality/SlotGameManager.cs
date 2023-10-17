@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using SlotDisplay;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace SlotFunctionality
 {
@@ -12,14 +14,25 @@ namespace SlotFunctionality
         [SerializeField] private SlotLayoutManager slotLayoutManager;
         [SerializeField] private GameObject[] slotSymbols;
         [SerializeField] private GameObject slots;
-        [SerializeField] private Vector3 symbolOffset = new(0, 0, -1);
-        [SerializeField,Range(-2f,-0.01f)] private float startingSpinSpeed = 0.1f;
 
+        [Header("Spin Settings")] [SerializeField, Range(-2f, -0.01f)]
+        private float startingSpinSpeed = -0.1f;
+
+        [SerializeField, Tooltip("The time in seconds before the first reel stops")]
+        private float firstReelStopTime = 2f;
+
+        [SerializeField, Tooltip("The time between each reel stopping in seconds")]
+        private float reelStopDelay = 1f;
+
+        private readonly Vector3 symbolOffset = new(0, 0, -1);
         private GameObject[,] symbols;
         private List<GameObject> matchLines = new();
 
         private float topRowYPos;
         private float bottomRowYPos;
+        private float reelSpinTimestamp;
+        private int reelStopCount;
+        private bool isSpinning;
 
         private void OnValidate()
         {
@@ -33,25 +46,49 @@ namespace SlotFunctionality
         private void Start()
         {
             symbols = new GameObject[slotLayoutManager.ReelCount, slotLayoutManager.RowCount];
-            SpinTheWheel();
 
-            topRowYPos = slotLayoutManager.SlotRows[0].transform.localPosition.y;
-            bottomRowYPos = slotLayoutManager.SlotRows[^1].transform.localPosition.y-slotLayoutManager.RowSpacing;
+            topRowYPos = slotLayoutManager.SlotBoard[0,0].transform.localPosition.y+ slotLayoutManager.RowSpacing;
+            bottomRowYPos = slotLayoutManager.SlotBoard[slotLayoutManager.ReelCount-1,slotLayoutManager.RowCount].transform.localPosition.y ;
         }
 
         private void Update()
         {
-            //take the objs and move them down on the y axis
-            foreach (var obj in slotLayoutManager.SlotRows)
+            if (!isSpinning)
+                return;
+
+            var toleranceValue = Math.Abs(slotLayoutManager.SlotBoard[reelStopCount+1, 0].transform.localPosition.y -
+                               (topRowYPos - slotLayoutManager.RowSpacing));
+
+            if (Time.time >= reelSpinTimestamp&& toleranceValue < 0.01f)
             {
-                obj.transform.position += new Vector3(0, startingSpinSpeed, 0);
+                reelStopCount++;
 
-                var rowTransform = obj.transform;
-
-                if (rowTransform.localPosition.y <= bottomRowYPos)
+                if (reelStopCount == slotLayoutManager.ReelCount-1)
                 {
-                    rowTransform.localPosition =
-                        new Vector3(obj.transform.localPosition.x, topRowYPos, rowTransform.localPosition.z);
+                    isSpinning = false;
+                    CheckForMatches();
+                    return;
+                }
+
+                reelSpinTimestamp = Time.time + reelStopDelay;
+            }
+
+            //take the slots and move them down on the y axis
+            for (var i = 0; i < slotLayoutManager.ReelCount; i++)
+            {
+                var specifiedToleranceValue = Math.Abs(slotLayoutManager.SlotBoard[i, 0].transform.localPosition.y -
+                               (topRowYPos - slotLayoutManager.RowSpacing));
+                if (reelStopCount >= i && specifiedToleranceValue < 0.01f)
+                    continue;
+
+                for(var j = 0; j <= slotLayoutManager.RowCount; j++)
+                {
+                    var slot = slotLayoutManager.SlotBoard[i, j];
+                    if (slot.transform.localPosition.y <= bottomRowYPos)
+                    {
+                        slot.transform.localPosition = new Vector3(slot.transform.localPosition.x, topRowYPos, slot.transform.localPosition.z);
+                    }
+                    slot.transform.localPosition += new Vector3(0, startingSpinSpeed, 0);
                 }
             }
         }
@@ -66,13 +103,17 @@ namespace SlotFunctionality
 
             matchLines.Clear();
 
+            reelSpinTimestamp = Time.time + firstReelStopTime;
+            reelStopCount = -1;
+            isSpinning = true;
+
             for (var i = 0; i < slotLayoutManager.ReelCount; i++)
             {
                 for (var j = 0; j < slotLayoutManager.RowCount; j++)
                 {
                     var gridPosition = slotLayoutManager.SlotBoard[i, j];
 
-                    foreach (Transform child in gridPosition.transform)
+                    foreach (Transform child in slotLayoutManager.SlotBoard[i,j].transform)
                     {
                         Destroy(child.gameObject);
                     }
@@ -84,9 +125,14 @@ namespace SlotFunctionality
                     thisPiece.transform.parent = gridPosition.transform;
                     symbols[i, j] = thisPiece;
                 }
-            }
 
-            CheckForMatches();
+                //for the extra row of symbols, we dont need to keep track of what they are
+                var pieceType2 = slotSymbols[Random.Range(0, slotSymbols.Length)];
+                var thisPiece2 = Instantiate(pieceType2, slotLayoutManager.SlotBoard[i, slotLayoutManager.RowCount].transform.position + symbolOffset,
+                    Quaternion.identity);
+                thisPiece2.name = pieceType2.name;
+                thisPiece2.transform.parent = slotLayoutManager.SlotBoard[i, slotLayoutManager.RowCount].transform;
+            }
         }
 
         private void DrawLine(Vector3 start, Vector3 end)
